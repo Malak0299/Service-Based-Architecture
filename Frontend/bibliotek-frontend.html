@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bibliotek</title>
+<style>
+  :root {
+    color-scheme: light;
+    --papir: #fdfbf7;
+    --kort: #ffffff;
+    --tekst: #1b130e;
+    --daempet: #6b5a4e;
+    --laeder: #4a2c1a;
+    --brun: #7a4a2b;
+    --linje: #e3d9cd;
+    --sort: #14100d;
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--papir);
+    color: var(--tekst);
+    font-family: var(--sans);
+    line-height: 1.5;
+  }
+
+  .side {
+    max-width: 40rem;
+    margin: 0 auto;
+    padding: 3rem 1.25rem 4rem;
+  }
+
+  header {
+    border-top: 6px solid var(--laeder);
+    border-bottom: 1px solid var(--laeder);
+    padding: 1.5rem 0 1.25rem;
+    margin-bottom: 2.5rem;
+  }
+  header h1 {
+    font-family: var(--serif);
+    font-size: 2.75rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 0 0 0.25rem;
+    color: var(--laeder);
+  }
+  header p {
+    margin: 0;
+    color: var(--daempet);
+    font-family: var(--serif);
+    font-size: 1.05rem;
+  }
+
+  /* Hvert trin er en bog på hylden: ryg til venstre, indhold til højre */
+  .trin {
+    display: grid;
+    grid-template-columns: 3.25rem 1fr;
+    background: var(--kort);
+    border: 1px solid var(--linje);
+    border-radius: 3px;
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+  }
+  .trin[hidden] { display: none; }
+  .ryg {
+    background: var(--laeder);
+    color: var(--papir);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 1rem;
+    font-family: var(--serif);
+    font-size: 1.6rem;
+    font-weight: 700;
+    border-right: 4px solid var(--brun);
+  }
+  .indhold { padding: 1.25rem 1.5rem 1.5rem; min-width: 0; }
+  .indhold h2 {
+    font-family: var(--serif);
+    font-size: 1.4rem;
+    margin: 0 0 0.25rem;
+    color: var(--laeder);
+  }
+  .hjaelp {
+    margin: 0 0 1rem;
+    color: var(--daempet);
+    font-size: 0.925rem;
+  }
+
+  .handling + .handling {
+    border-top: 1px solid var(--linje);
+    margin-top: 1.25rem;
+    padding-top: 1.25rem;
+  }
+  .handling h3 {
+    font-family: var(--serif);
+    font-size: 1.05rem;
+    margin: 0 0 0.6rem;
+  }
+
+  form { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: flex-end; }
+  .felt { display: flex; flex-direction: column; gap: 0.25rem; flex: 1 1 8rem; min-width: 0; }
+  label { font-size: 0.875rem; font-weight: 600; }
+  input {
+    font: inherit;
+    padding: 0.55rem 0.7rem;
+    border: 1px solid #b9a998;
+    border-radius: 3px;
+    background: #fff;
+    color: var(--tekst);
+    min-width: 0;
+  }
+  input:focus-visible, button:focus-visible {
+    outline: 3px solid var(--brun);
+    outline-offset: 2px;
+  }
+
+  button {
+    font: inherit;
+    font-weight: 600;
+    padding: 0.6rem 1.1rem;
+    border: 0;
+    border-radius: 3px;
+    background: var(--laeder);
+    color: var(--papir);
+    cursor: pointer;
+  }
+  button:hover { background: var(--sort); }
+  button:disabled { opacity: 0.6; cursor: wait; }
+
+  .resultat { margin-top: 0.9rem; }
+  .resultat:empty { display: none; }
+  .svar {
+    border-left: 5px solid var(--brun);
+    background: #faf6ef;
+    padding: 0.75rem 1rem;
+    border-radius: 0 3px 3px 0;
+  }
+  .svar.fejl {
+    border-left-color: var(--sort);
+    background: #f1eeea;
+  }
+  .toplinje {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+  .besked { font-family: var(--serif); font-size: 1.1rem; font-weight: 700; }
+  .kode {
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 3px;
+    background: var(--laeder);
+    color: var(--papir);
+    white-space: nowrap;
+  }
+  .svar.fejl .kode { background: var(--sort); }
+  .noter {
+    margin: 0.5rem 0 0;
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    color: var(--daempet);
+    overflow-wrap: anywhere;
+  }
+  .noter + .noter { margin-top: 0.15rem; }
+
+  footer {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--linje);
+    color: var(--daempet);
+    font-size: 0.85rem;
+  }
+
+  @media (max-width: 30rem) {
+    header h1 { font-size: 2.1rem; }
+    .trin { grid-template-columns: 2.5rem 1fr; }
+    .indhold { padding: 1rem; }
+  }
+</style>
+</head>
+<body>
+<div class="side">
+
+  <header>
+    <h1>Bibliotek</h1>
+    <p>Opret dig som medlem, find en bog og lån den.</p>
+  </header>
+
+  <!-- Trin 1: Member Service -->
+  <section class="trin" aria-labelledby="t1">
+    <div class="ryg" aria-hidden="true">1</div>
+    <div class="indhold">
+      <h2 id="t1">Medlemmer</h2>
+
+      <div class="handling">
+        <h3>Opret medlem</h3>
+        <form id="opretMedlem">
+          <div class="felt">
+            <label for="medlemNavn">Navn</label>
+            <input id="medlemNavn" name="navn" type="text" autocomplete="off">
+          </div>
+          <button type="submit">Opret medlem</button>
+        </form>
+        <div class="resultat" id="resOpretMedlem" aria-live="polite"></div>
+      </div>
+
+      <div class="handling">
+        <h3>Find medlem</h3>
+        <form id="findMedlem">
+          <div class="felt">
+            <label for="findMedlemId">Medlemsnummer</label>
+            <input id="findMedlemId" name="id" type="number" min="1" inputmode="numeric">
+          </div>
+          <button type="submit">Find medlem</button>
+        </form>
+        <div class="resultat" id="resFindMedlem" aria-live="polite"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Trin 2: Book Service -->
+  <section class="trin" id="trin2" aria-labelledby="t2" hidden>
+    <div class="ryg" aria-hidden="true">2</div>
+    <div class="indhold">
+      <h2 id="t2">Bøger</h2>
+      <p class="hjaelp">Slå en bog op med dens nummer. Når bogen er fundet, kommer trin 3 frem.</p>
+      <form id="findBog">
+        <div class="felt">
+          <label for="findBogId">Bognummer</label>
+          <input id="findBogId" name="id" type="number" min="1" inputmode="numeric">
+        </div>
+        <button type="submit">Find bog</button>
+      </form>
+      <div class="resultat" id="resFindBog" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <!-- Trin 3: Loan Service -->
+  <section class="trin" id="trin3" aria-labelledby="t3" hidden>
+    <div class="ryg" aria-hidden="true">3</div>
+    <div class="indhold">
+      <h2 id="t3">Lån</h2>
+      <p class="hjaelp">Loan Service tjekker selv bog og medlem, før lånet gemmes.</p>
+      <form id="opretLaan">
+        <div class="felt">
+          <label for="laanBogId">Bognummer</label>
+          <input id="laanBogId" name="bookId" type="number" min="1" inputmode="numeric">
+        </div>
+        <div class="felt">
+          <label for="laanMedlemId">Medlemsnummer</label>
+          <input id="laanMedlemId" name="memberId" type="number" min="1" inputmode="numeric">
+        </div>
+        <button type="submit">Opret lån</button>
+      </form>
+      <div class="resultat" id="resOpretLaan" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <footer>
+    Siden kalder kun de fire endpoints fra arkitekturdiagrammet.
+  </footer>
+</div>
+
+<script>
+  // Adresser til de tre services. Ret her, hvis portene ændres.
+  const SERVICES = {
+    book:   { navn: "Book Service",   url: "http://localhost:5001" },
+    member: { navn: "Member Service", url: "http://localhost:5002" },
+    loan:   { navn: "Loan Service",   url: "http://localhost:5003" }
+  };
+
+  const STATUS_TEKST = {
+    200: "OK",
+    400: "Ugyldigt kald",
+    404: "Ikke fundet",
+    500: "Serverfejl",
+    503: "Tjenesten er nede"
+  };
+
+  // Sender ét kald til en service og samler svaret i et objekt
+  async function kald(service, metode, sti) {
+    const s = SERVICES[service];
+    const kaldTekst = metode + " " + sti + "  (" + s.navn + ", " + new URL(s.url).host + ")";
+    try {
+      const svar = await fetch(s.url + sti, { method: metode });
+      const tekst = await svar.text();
+      let data = tekst;
+      try { data = JSON.parse(tekst); } catch (e) { /* ikke JSON, brug teksten */ }
+      return { forbindelse: true, ok: svar.ok, status: svar.status, data: data, tekst: tekst, kaldTekst: kaldTekst, service: s.navn };
+    } catch (e) {
+      return { forbindelse: false, ok: false, status: null, data: null, tekst: "", kaldTekst: kaldTekst, service: s.navn };
+    }
+  }
+
+  function vis(elId, r, besked) {
+    const el = document.getElementById(elId);
+    el.replaceChildren();
+
+    const boks = document.createElement("div");
+    boks.className = "svar" + (r.ok ? "" : " fejl");
+
+    const top = document.createElement("div");
+    top.className = "toplinje";
+
+    const b = document.createElement("span");
+    b.className = "besked";
+    b.textContent = besked;
+    top.appendChild(b);
+
+    const k = document.createElement("span");
+    k.className = "kode";
+    if (r.status === null) {
+      k.textContent = "Ingen forbindelse";
+    } else {
+      const label = STATUS_TEKST[r.status];
+      k.textContent = r.status + (label ? " " + label : "");
+    }
+    top.appendChild(k);
+    boks.appendChild(top);
+
+    if (r.kaldTekst) {
+      const n = document.createElement("p");
+      n.className = "noter";
+      n.textContent = "Kald: " + r.kaldTekst;
+      boks.appendChild(n);
+    }
+    if (r.tekst) {
+      const n2 = document.createElement("p");
+      n2.className = "noter";
+      n2.textContent = "Svar: " + r.tekst;
+      boks.appendChild(n2);
+    }
+    el.appendChild(boks);
+  }
+
+  // Besked uden at sende noget (fx hvis et felt er tomt)
+  function visLokalFejl(elId, besked) {
+    vis(elId, { ok: false, status: null, kaldTekst: "", tekst: "" }, besked);
+    const k = document.querySelector("#" + elId + " .kode");
+    if (k) k.textContent = "Ikke sendt";
+  }
+
+  function ingenForbindelse(r) {
+    return "Kunne ikke nå " + r.service + ". Kører den, og er CORS slået til?";
+  }
+
+  function fejlBesked(r, standard) {
+    if (!r.forbindelse) return ingenForbindelse(r);
+    if (r.data && typeof r.data === "object" && r.data.detail) return r.data.detail;
+    if (typeof r.data === "string" && r.data.length > 0) return r.data;
+    return standard;
+  }
+
+  // Viser næste trin og ruller ned til det
+  function laasOp(trinId) {
+    const trin = document.getElementById(trinId);
+    if (!trin.hidden) return;
+    trin.hidden = false;
+    const rolig = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    trin.scrollIntoView({ behavior: rolig ? "auto" : "smooth", block: "center" });
+    const foerste = trin.querySelector("input");
+    if (foerste) foerste.focus({ preventScroll: true });
+  }
+
+  // Binder en formular til en funktion og slår knappen fra, mens der ventes
+  function formular(id, handler) {
+    const f = document.getElementById(id);
+    f.addEventListener("submit", async function (e) {
+      e.preventDefault();
+      const knap = f.querySelector("button");
+      knap.disabled = true;
+      try { await handler(new FormData(f)); } finally { knap.disabled = false; }
+    });
+  }
+
+  // Trin 1a: POST /members?name=...   (Member Service)
+  formular("opretMedlem", async function (data) {
+    const navn = (data.get("navn") || "").trim();
+    if (!navn) { visLokalFejl("resOpretMedlem", "Skriv et navn først."); return; }
+    const r = await kald("member", "POST", "/members?name=" + encodeURIComponent(navn));
+    vis("resOpretMedlem", r, r.ok ? "Medlem oprettet: " + navn : fejlBesked(r, "Medlemmet blev ikke oprettet."));
+    if (r.ok) laasOp("trin2");
+  });
+
+  // Trin 1b: GET /members/{id}   (Member Service)
+  formular("findMedlem", async function (data) {
+    const id = (data.get("id") || "").trim();
+    if (!id) { visLokalFejl("resFindMedlem", "Skriv et medlemsnummer først."); return; }
+    const r = await kald("member", "GET", "/members/" + encodeURIComponent(id));
+    let besked;
+    if (r.ok && r.data && r.data.name) besked = "Medlem fundet: " + r.data.name + " (nr. " + r.data.id + ")";
+    else if (r.status === 404) besked = "Medlemmet findes ikke.";
+    else besked = fejlBesked(r, "Kunne ikke hente medlemmet.");
+    vis("resFindMedlem", r, besked);
+    if (r.ok) laasOp("trin2");
+  });
+
+  // Trin 2: GET /books/{id}   (Book Service)
+  formular("findBog", async function (data) {
+    const id = (data.get("id") || "").trim();
+    if (!id) { visLokalFejl("resFindBog", "Skriv et bognummer først."); return; }
+    const r = await kald("book", "GET", "/books/" + encodeURIComponent(id));
+    let besked;
+    if (r.ok && r.data && r.data.title) besked = "Bog fundet: " + r.data.title + " (nr. " + r.data.id + ")";
+    else if (r.status === 404) besked = "Bogen findes ikke.";
+    else besked = fejlBesked(r, "Kunne ikke hente bogen.");
+    vis("resFindBog", r, besked);
+    if (r.ok) laasOp("trin3");
+  });
+
+  // Trin 3: POST /loans?bookId=...&memberId=...   (Loan Service, som selv kalder Book og Member Service)
+  formular("opretLaan", async function (data) {
+    const bookId = (data.get("bookId") || "").trim();
+    const memberId = (data.get("memberId") || "").trim();
+    if (!bookId || !memberId) { visLokalFejl("resOpretLaan", "Skriv både bognummer og medlemsnummer."); return; }
+    const sti = "/loans?bookId=" + encodeURIComponent(bookId) + "&memberId=" + encodeURIComponent(memberId);
+    const r = await kald("loan", "POST", sti);
+    let besked;
+    if (r.ok) {
+      besked = "Lån oprettet: bog " + bookId + " til medlem " + memberId;
+    } else if (r.status === 404) {
+      const t = typeof r.data === "string" ? r.data : "";
+      if (t.indexOf("Bogen") === 0) besked = "Bogen findes ikke. Lånet blev ikke oprettet.";
+      else if (t.indexOf("Medlem") === 0) besked = "Medlemmet findes ikke. Lånet blev ikke oprettet.";
+      else besked = "Bog eller medlem findes ikke. Lånet blev ikke oprettet.";
+    } else if (r.status === 503) {
+      besked = fejlBesked(r, "En service er nede.") + ". Lånet blev ikke oprettet.";
+    } else {
+      besked = fejlBesked(r, "Lånet blev ikke oprettet.");
+    }
+    vis("resOpretLaan", r, besked);
+  });
+</script>
+</body>
+</html>
