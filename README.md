@@ -16,7 +16,7 @@ books.json og members.json ligger i Data, og loans.json skal starte som [] (alts
 ## Test det ud: 
 - GET http://localhost:5001/books/1
 - POST http://localhost:5003/loans?bookId=1&memberId=1 med curl.exe. *(åben en ny git bash inde i loan service og sæt dette ind)*
-- I kan også teste statuskoderne ud (200 OK, 404 Not Found og 503 Service Unavailable)
+- I kan også teste statuskoderne ud (200 OK, 404 Not Found og 503 Service Unavailable) med fx. **curl.exe -i -X POST "http://localhost:5003/loans?bookId=1&memberId=1"**
 
 ## Frontend: 
 bar åbn Frontend/bibliotek-frontend.html i en browser, når alle services kører.
