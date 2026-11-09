@@ -3,9 +3,9 @@
 
 
 ## Start services: 
-dotnet run --urls http://localhost:5001/ i BookService
-dotnet run --urls http://localhost:5002/ i MemberService
-dotnet run --urls http://localhost:5003/ i LoanService
+- dotnet run --urls http://localhost:5001/ i BookService
+- dotnet run --urls http://localhost:5002/ i MemberService
+- dotnet run --urls http://localhost:5003/ i LoanService
 
 *Hver service startes i sin egen mappe, ellers finder den ikke ../Data/.(hvor datafilerne er)*
 
