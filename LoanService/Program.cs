@@ -2,15 +2,11 @@ using System.Net;
 using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
-
-// NY: tillad kald fra frontenden
 builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
-    p.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader()));
-
-
+p.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader()));
 var app = builder.Build();
-// NY: slå reglen til, før dine MapGet/MapPost
 app.UseCors();
+
 app.MapPost("/loans", async (int bookId, int memberId) =>
 {   
     var client = new HttpClient();
@@ -42,11 +38,8 @@ app.MapPost("/loans", async (int bookId, int memberId) =>
 
 var text = File.ReadAllText("../Data/loans.json");
 var loans = JsonSerializer.Deserialize<List<Loan>>(text);
-
 var amount = loans.Count;
 loans.Add(new Loan(id:amount+1, bookId, memberId));
-
-
 var newText = JsonSerializer.Serialize(loans);
 File.WriteAllText("../Data/loans.json", newText);
 

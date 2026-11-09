@@ -172,6 +172,25 @@
   }
   .noter + .noter { margin-top: 0.15rem; }
 
+  .boeger { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.5rem; }
+  .bog {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    text-align: left;
+    background: #fff;
+    color: var(--tekst);
+    border: 1px solid var(--linje);
+    border-left: 6px solid var(--brun);
+    font-family: var(--serif);
+    font-size: 1.05rem;
+    padding: 0.65rem 0.9rem;
+  }
+  .bog:hover { background: #faf6ef; }
+  .bognr { font-family: var(--mono); font-size: 0.78rem; font-weight: 400; color: var(--daempet); }
+  .oversigt { font-family: var(--serif); font-size: 1.05rem; margin: 0 0 1rem; }
+
   footer {
     margin-top: 2rem;
     padding-top: 1rem;
@@ -192,7 +211,7 @@
 
   <header>
     <h1>Bibliotek</h1>
-    <p>Opret dig som medlem, find en bog og lån den.</p>
+    <p>Opret et medlem, find en bog og lån den ud.</p>
   </header>
 
   <!-- Trin 1: Member Service -->
@@ -200,6 +219,7 @@
     <div class="ryg" aria-hidden="true">1</div>
     <div class="indhold">
       <h2 id="t1">Medlemmer</h2>
+      <p class="hjaelp">Et nyt medlem får det næste ledige nummer. Når du har oprettet eller fundet et medlem, kommer trin 2 frem.</p>
 
       <div class="handling">
         <h3>Opret medlem</h3>
@@ -232,14 +252,8 @@
     <div class="ryg" aria-hidden="true">2</div>
     <div class="indhold">
       <h2 id="t2">Bøger</h2>
-      <p class="hjaelp">Slå en bog op med dens nummer. Når bogen er fundet, kommer trin 3 frem.</p>
-      <form id="findBog">
-        <div class="felt">
-          <label for="findBogId">Bognummer</label>
-          <input id="findBogId" name="id" type="number" min="1" inputmode="numeric">
-        </div>
-        <button type="submit">Find bog</button>
-      </form>
+      <p class="hjaelp">Vælg en bog på listen. Når du har valgt en, kommer trin 3 frem.</p>
+      <ul class="boeger" id="bogListe"></ul>
       <div class="resultat" id="resFindBog" aria-live="polite"></div>
     </div>
   </section>
@@ -250,6 +264,7 @@
     <div class="indhold">
       <h2 id="t3">Lån</h2>
       <p class="hjaelp">Loan Service tjekker selv bog og medlem, før lånet gemmes.</p>
+      <p class="oversigt" id="laanOversigt"></p>
       <form id="opretLaan">
         <div class="felt">
           <label for="laanBogId">Bognummer</label>
@@ -362,12 +377,13 @@
 
   // Viser næste trin og ruller ned til det
   function laasOp(trinId) {
+    if (trinId === "trin2") hentBoeger();
     const trin = document.getElementById(trinId);
     if (!trin.hidden) return;
     trin.hidden = false;
     const rolig = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     trin.scrollIntoView({ behavior: rolig ? "auto" : "smooth", block: "center" });
-    const foerste = trin.querySelector("input");
+    const foerste = trin.querySelector("input, button.bog");
     if (foerste) foerste.focus({ preventScroll: true });
   }
 
@@ -387,7 +403,17 @@
     const navn = (data.get("navn") || "").trim();
     if (!navn) { visLokalFejl("resOpretMedlem", "Skriv et navn først."); return; }
     const r = await kald("member", "POST", "/members?name=" + encodeURIComponent(navn));
-    vis("resOpretMedlem", r, r.ok ? "Medlem oprettet: " + navn : fejlBesked(r, "Medlemmet blev ikke oprettet."));
+    let besked;
+    if (r.ok && r.data && typeof r.data === "object" && r.data.id) {
+      valgtMedlem = { id: r.data.id, name: r.data.name };
+      besked = "Medlem oprettet: " + r.data.name + " (nr. " + r.data.id + ")";
+    } else if (r.ok) {
+      besked = "Medlem oprettet: " + navn;
+    } else {
+      besked = fejlBesked(r, "Medlemmet blev ikke oprettet.");
+    }
+    vis("resOpretMedlem", r, besked);
+    opdaterLaan();
     if (r.ok) laasOp("trin2");
   });
 
@@ -400,22 +426,62 @@
     if (r.ok && r.data && r.data.name) besked = "Medlem fundet: " + r.data.name + " (nr. " + r.data.id + ")";
     else if (r.status === 404) besked = "Medlemmet findes ikke.";
     else besked = fejlBesked(r, "Kunne ikke hente medlemmet.");
+    if (r.ok && r.data && r.data.name) valgtMedlem = { id: r.data.id, name: r.data.name };
     vis("resFindMedlem", r, besked);
+    opdaterLaan();
     if (r.ok) laasOp("trin2");
   });
 
-  // Trin 2: GET /books/{id}   (Book Service)
-  formular("findBog", async function (data) {
-    const id = (data.get("id") || "").trim();
-    if (!id) { visLokalFejl("resFindBog", "Skriv et bognummer først."); return; }
+  // Det, brugeren har valgt indtil videre
+  let valgtBog = null;
+  let valgtMedlem = null;
+
+  // Trin 2a: GET /books (liste over bøger)   (Book Service)
+  async function hentBoeger() {
+    const liste = document.getElementById("bogListe");
+    const r = await kald("book", "GET", "/books");
+    liste.replaceChildren();
+    if (!r.ok || !Array.isArray(r.data)) {
+      vis("resFindBog", r, r.status === 404 ? "Book Service har ikke GET /books endnu." : fejlBesked(r, "Kunne ikke hente bøgerne."));
+      return;
+    }
+    r.data.forEach(function (bog) {
+      const li = document.createElement("li");
+      const knap = document.createElement("button");
+      knap.type = "button";
+      knap.className = "bog";
+      knap.textContent = bog.title;
+      const nr = document.createElement("span");
+      nr.className = "bognr";
+      nr.textContent = "nr. " + bog.id;
+      knap.appendChild(nr);
+      knap.addEventListener("click", function () { vaelgBog(bog.id); });
+      li.appendChild(knap);
+      liste.appendChild(li);
+    });
+  }
+
+  // Trin 2b: GET /books/{id} (den valgte bog)   (Book Service)
+  async function vaelgBog(id) {
     const r = await kald("book", "GET", "/books/" + encodeURIComponent(id));
-    let besked;
-    if (r.ok && r.data && r.data.title) besked = "Bog fundet: " + r.data.title + " (nr. " + r.data.id + ")";
-    else if (r.status === 404) besked = "Bogen findes ikke.";
-    else besked = fejlBesked(r, "Kunne ikke hente bogen.");
-    vis("resFindBog", r, besked);
-    if (r.ok) laasOp("trin3");
-  });
+    if (r.ok && r.data && r.data.title) {
+      valgtBog = { id: r.data.id, title: r.data.title };
+      vis("resFindBog", r, "Valgt bog: " + r.data.title + " (nr. " + r.data.id + ")");
+      opdaterLaan();
+      laasOp("trin3");
+    } else {
+      vis("resFindBog", r, r.status === 404 ? "Bogen findes ikke." : fejlBesked(r, "Kunne ikke hente bogen."));
+    }
+  }
+
+  // Trin 3: viser valgt bog og medlem og udfylder numrene
+  function opdaterLaan() {
+    const bog = valgtBog ? valgtBog.title + " (nr. " + valgtBog.id + ")" : "ingen valgt";
+    const medlem = valgtMedlem ? valgtMedlem.name + " (nr. " + valgtMedlem.id + ")" : "skriv nummeret nedenfor";
+    document.getElementById("laanOversigt").textContent = "Bog: " + bog + ". Medlem: " + medlem + ".";
+    if (valgtBog) document.getElementById("laanBogId").value = valgtBog.id;
+    if (valgtMedlem) document.getElementById("laanMedlemId").value = valgtMedlem.id;
+  }
 
   // Trin 3: POST /loans?bookId=...&memberId=...   (Loan Service, som selv kalder Book og Member Service)
   formular("opretLaan", async function (data) {

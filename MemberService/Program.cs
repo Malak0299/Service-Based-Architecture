@@ -1,14 +1,11 @@
 using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
-
-// NY: tillad kald fra frontenden
 builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
-    p.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader()));
-
+p.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader()));
 var app = builder.Build();
-// NY: slå reglen til, før dine MapGet/MapPost
 app.UseCors();
+
 app.MapGet("/members/{id}", (int id) =>
 {
     var text = File.ReadAllText("../Data/members.json");
@@ -33,10 +30,7 @@ app.MapPost("/members",(string name) =>
     var newMember = JsonSerializer.Serialize(members);
     File.WriteAllText("../Data/members.json", newMember);
     
-    return Results.Ok("Medlem er oprettet");
-
-
+    return Results.Ok(new Member(id: amount + 1, name: name));
 });
-
 app.Run();
 record Member(int id, string name);
